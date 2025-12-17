@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hello-world-flow",
+    "config": {
+      "src/hello/process-greeting.step.ts": {
+        "x": 409,
+        "y": 44
+      },
+      "src/hello/hello-api.step.ts": {
+        "x": 0,
+        "y": 0,
+        "sourceHandlePosition": "right"
+      }
+    }
+  },
+  {
+    "id": "github-flow",
+    "config": {
+      "src/github/webhook.step.ts": {
+        "x": -158,
+        "y": -3
+      },
+      "src/ai/analyze-pr.step.ts": {
+        "x": 379,
+        "y": 32
+      }
+    }
+  },
+  {
+    "id": "draft-flow",
+    "config": {
+      "src/drafts/update.step.ts": {
+        "x": -196,
+        "y": -3
+      },
+      "src/drafts/process.step.ts": {
+        "x": 210,
+        "y": 442
+      },
+      "src/drafts/delete.step.ts": {
+        "x": -197,
+        "y": 201
+      },
+      "src/drafts/create.step.ts": {
+        "x": -192,
+        "y": 405
+      }
+    }
+  }
+]
