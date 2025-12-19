@@ -14,19 +14,6 @@
     }
   },
   {
-    "id": "github-flow",
-    "config": {
-      "src/github/webhook.step.ts": {
-        "x": -158,
-        "y": -3
-      },
-      "src/ai/analyze-pr.step.ts": {
-        "x": 379,
-        "y": 32
-      }
-    }
-  },
-  {
     "id": "draft-flow",
     "config": {
       "src/drafts/update.step.ts": {
@@ -44,6 +31,19 @@
       "src/drafts/create.step.ts": {
         "x": -192,
         "y": 405
+      }
+    }
+  },
+  {
+    "id": "github-flow",
+    "config": {
+      "src/github/webhook.step.ts": {
+        "x": -145,
+        "y": -4
+      },
+      "src/ai/analyze-pr.step.ts": {
+        "x": 350,
+        "y": 34
       }
     }
   }

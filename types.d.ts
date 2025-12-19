@@ -12,14 +12,18 @@ declare module 'motia' {
   }
 
   interface Handlers {
+    'SchedulePost': ApiRouteHandler<{ draftId: string; scheduledFor: string }, unknown, never>
+    'PublishPost': EventHandler<never, never>
     'ProcessGreeting': EventHandler<{ timestamp: string; appName: string; greetingPrefix: string; requestId: string }, never>
     'HelloAPI': ApiRouteHandler<Record<string, unknown>, ApiResponse<200, { message: string; status: string; appName: string }>, { topic: 'process-greeting'; data: { timestamp: string; appName: string; greetingPrefix: string; requestId: string } }>
+    'GithubWebhook': ApiRouteHandler<{ action?: string; pull_request?: { merged?: boolean; title: string; body: string | unknown; html_url: string; url: string; number: number; user: { login: string } }; release?: { tag_name: string; name: string | unknown; body: string | unknown; html_url: string; author: { login: string } }; repository: { full_name: string } }, unknown, { topic: 'github.pr_merged'; data: never }>
     'UpdateDraft': ApiRouteHandler<{ content?: string; platform?: 'twitter' | 'linkedin' | 'discord'; scheduledFor?: string }, unknown, never>
     'SingleDraft': ApiRouteHandler<Record<string, unknown>, unknown, never>
+    'ProcessDrafts': EventHandler<never, never>
     'ListDrafts': ApiRouteHandler<Record<string, unknown>, unknown, never>
     'DeleteDraft': ApiRouteHandler<Record<string, unknown>, unknown, never>
-    'CreateDraft': ApiRouteHandler<{ content: string; platform: 'twitter' | 'linkedin' | 'discord' }, unknown, never>
-    'GithubWebhook': ApiRouteHandler<{ action?: string; pull_request?: { merged?: boolean; title: string; body: string | unknown; html_url: string; user: { login: string } }; release?: { tag_name: string; name: string | unknown; body: string | unknown; html_url: string; author: { login: string } }; repository: { full_name: string } }, unknown, never>
+    'CreateDraft': ApiRouteHandler<{ content: string; platform: 'twitter' | 'linkedin' | 'discord' }, unknown, { topic: 'draft.created'; data: never }>
+    'AnalyzePR': EventHandler<never, { topic: 'draft.created'; data: never }>
   }
     
 }

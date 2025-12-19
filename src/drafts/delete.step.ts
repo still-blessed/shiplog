@@ -6,7 +6,7 @@ export const config: ApiRouteConfig = {
     path: '/draft/:id',
     method: 'DELETE',
     description: 'Delete a draft',
-    emits: ['draft.deleted'],
+    emits: [],
     flows: ['draft-flow']
 }
 
@@ -17,10 +17,6 @@ export const handler: Handlers['DeleteDraft'] = async (req, { state, logger, emi
     if (draft) {
         await state.delete('drafts', id);
         logger.info('Draft deleted successfully', { draft });
-        await emit({
-            topic: 'draft.deleted',
-            data: draft
-        });
     } else {
         logger.info('Draft not found', { id });
     }

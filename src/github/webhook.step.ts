@@ -16,6 +16,8 @@ export const config: ApiRouteConfig = {
             title: z.string(),
             body: z.string().nullable(),
             html_url: z.string(),
+            url: z.string(),
+            number: z.number(),
             user: z.object({
                 login: z.string(),
             }),
@@ -54,6 +56,45 @@ export const handler: Handlers['GithubWebhook'] = async (req, { emit, logger }) 
             url: pr.html_url
         });
 
+        // Fetch comments and files
+        let comments: string[] = [];
+        let files: { name: string; patch?: string }[] = [];
+
+        try {
+            if (process.env.GITHUB_TOKEN) {
+                const headers = {
+                    'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'Shiplog-Bot'
+                };
+
+                const reviewCommentsUrl = `${pr.url}/comments`;
+                const issueCommentsUrl = pr.url.replace('/pulls/', '/issues/') + '/comments';
+                const filesUrl = `${pr.url}/files`;
+
+                const [reviewCommentsRes, issueCommentsRes, filesRes] = await Promise.all([
+                    fetch(reviewCommentsUrl, { headers }),
+                    fetch(issueCommentsUrl, { headers }),
+                    fetch(filesUrl, { headers })
+                ]);
+
+                if (reviewCommentsRes.ok) {
+                    const data = await reviewCommentsRes.json() as any[];
+                    comments.push(...data.map((c: any) => `[Review] ${c.user.login}: ${c.body}`));
+                }
+                if (issueCommentsRes.ok) {
+                    const data = await issueCommentsRes.json() as any[];
+                    comments.push(...data.map((c: any) => `[Comment] ${c.user.login}: ${c.body}`));
+                }
+                if (filesRes.ok) {
+                    const data = await filesRes.json() as any[];
+                    files = data.map((f: any) => ({ name: f.filename, patch: f.patch }));
+                }
+            }
+        } catch (e) {
+            logger.error("Failed to fetch PR details", { error: e });
+        }
+
         await emit({
             topic: 'github.pr_merged',
             data: {
@@ -63,6 +104,8 @@ export const handler: Handlers['GithubWebhook'] = async (req, { emit, logger }) 
                 contributor: pr.user.login,
                 repository: req.body.repository.full_name,
                 mergedAt: new Date().toISOString(),
+                comments,
+                files
             }
         });
 
@@ -110,7 +153,7 @@ export const handler: Handlers['GithubWebhook'] = async (req, { emit, logger }) 
     }
 
     // Unhandled event type
-    logger.info('Unhandled GitHub event', { eventType, action: req.body.action });
+    logger.warn('Unhandled GitHub event', { eventType, action: req.body.action });
 
     return {
         status: 200,

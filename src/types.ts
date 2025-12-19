@@ -32,6 +32,8 @@ export interface GithubPRMergedPayload {
     contributor: string;
     repository: string;
     mergedAt: string;
+    comments?: string[];
+    files?: { name: string; patch?: string }[];
 }
 
 export interface GithubReleasePayload {

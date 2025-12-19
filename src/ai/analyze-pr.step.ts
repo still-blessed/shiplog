@@ -12,8 +12,10 @@ export const config: EventConfig = {
     flows: ['github-flow'],
 }
 
-export const handler: Handlers['AnalyzePR'] = async (event, { logger, emit, state }) => {
-    const payload = event.data as GithubPRMergedPayload;
+export const handler: Handlers['AnalyzePR'] = async (input, { logger, emit, state }) => {
+    const payload = input as GithubPRMergedPayload;
+
+    logger.info("payload received", payload)
 
     logger.info("Analyzing PR for content potential", { title: payload.title });
 
@@ -21,16 +23,30 @@ export const handler: Handlers['AnalyzePR'] = async (event, { logger, emit, stat
     const ai = new GeminiClient(logger);
 
     // Analyze PR
-    const analysis = await ai.analyzePR(payload.title, payload.body);
+    const analysis = await ai.analyzePR(payload.title, payload.body, payload.comments, payload.files);
     logger.info("AI Analysis Complete", { analysis });
 
     // Decision Logic
     if (analysis.hypeScore >= 7) {
         // High Score -> Create Draft immediately
         const draftId = randomUUID();
+        
+        let content = `🚀 New Feature: ${payload.title}\n\n`;
+        if (analysis.summary) {
+            content += `${analysis.summary}\n\n`;
+        } else {
+            content += `${payload.body || ''}\n\n`;
+        }
+        
+        if (analysis.codeSnippets && analysis.codeSnippets.length > 0) {
+            content += `Check out this code:\n\`\`\`\n${analysis.codeSnippets[0]}\n\`\`\`\n\n`;
+        }
+        
+        content += `Check it out: ${payload.url}`;
+
         const newDraft: Draft = {
             id: draftId,
-            content: `🚀 New Feature: ${payload.title}\n\n${payload.body || ''}\n\nCheck it out: ${payload.url}`,
+            content,
             platform: 'twitter', // Default
             status: 'draft',
             sourceUrl: payload.url,

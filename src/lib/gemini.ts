@@ -1,15 +1,17 @@
 import { Logger } from "motia";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 export interface AIAnalysisResult {
     hypeScore: number; // 1-10
     category: 'Feature' | 'Fix' | 'Chore';
+    summary?: string;
+    codeSnippets?: string[];
 }
 
 export class GeminiClient {
     private apiKey: string;
     private logger: Logger;
-    private client: GoogleGenerativeAI | null = null;
+    private client: GoogleGenAI | null = null;
 
     constructor(logger: Logger) {
         this.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
@@ -18,33 +20,50 @@ export class GeminiClient {
         if (!this.apiKey) {
             this.logger.warn("GEMINI_API_KEY is not set. AI features will run in mock mode.");
         } else {
-            this.client = new GoogleGenerativeAI(this.apiKey);
+            this.client = new GoogleGenAI({ apiKey: this.apiKey });
         }
     }
 
-    async analyzePR(title: string, body: string): Promise<AIAnalysisResult> {
+    async analyzePR(title: string, body: string, comments: string[] = [], files: { name: string; patch?: string }[] = []): Promise<AIAnalysisResult> {
         if (!this.client) {
             return this.mockAnalysis(title);
         }
 
         try {
-            const model = this.client.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const filesContext = files.slice(0, 5).map(f => `File: ${f.name}\nPatch:\n${(f.patch || '').slice(0, 1000)}`).join('\n\n');
+            const commentsContext = comments.join('\n');
 
             const prompt = `
                 Analyze this Pull Request for a developer social media tool.
                 Title: ${title}
                 Body: ${body}
 
+                Comments:
+                ${commentsContext}
+
+                Files (truncated):
+                ${filesContext}
+
+                Task:
+                1. Analyze the discussion in comments and the PR body to understand the problem and solution.
+                2. Identify the most interesting code snippets from the files that demonstrate the solution.
+                3. Determine the hype score (1-10) and category.
+
                 Output purely JSON in the following format (no markdown code blocks):
                 {
                     "hypeScore": <number 1-10, how exciting is this for a public announcement?>,
-                    "category": <"Feature" | "Fix" | "Chore">
+                    "category": <"Feature" | "Fix" | "Chore">,
+                    "summary": <string, detailed overview of discussion and solution>,
+                    "codeSnippets": <string[], array of interesting code snippets found in the patches>
                 }
             `;
 
-            const result = await model.generateContent(prompt);
-            const response = result.response;
-            const text = response.text();
+            const response = await this.client.models.generateContent({
+                model: "gemini-2.5-flash-lite",
+                contents: prompt
+            });
+
+            const text = response.text!;
 
             return this.parseJSON(text, { hypeScore: 5, category: 'Fix' });
         } catch (error) {
@@ -59,8 +78,6 @@ export class GeminiClient {
         }
 
         try {
-            const model = this.client.getGenerativeModel({ model: "gemini-1.5-flash" });
-
             const prompt = `
                 You are a tech influencer. Rewrite this raw technical content into an engaging post for ${platform}.
                 Keep it under 280 characters for Twitter. Use emojis.
@@ -70,8 +87,11 @@ export class GeminiClient {
                 Output just the post text.
             `;
 
-            const result = await model.generateContent(prompt);
-            return result.response.text().trim();
+            const response = await this.client.models.generateContent({
+                model: "gemini-2.5-flash-lite",
+                contents: prompt
+            });
+            return response.text!.trim();
         } catch (error) {
             this.logger.error("Gemini generation failed", { error });
             return content;

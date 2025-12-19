@@ -11,13 +11,13 @@ export const config: EventConfig = {
     flows: ['draft-flow'],
 }
 
-export const handler: Handlers['ProcessDrafts'] = async (event, { logger, state, emit }) => {
-    const draft = event.data as Draft;
+export const handler: Handlers['ProcessDrafts'] = async (input: any, { logger, state, emit }) => {
+    const draft = input as Draft;
 
     // Only process if it doesn't already have suggested content (avoid loops)
-    if (draft.suggestedContent) {
-        return { status: 200, body: { skipped: true } };
-    }
+    // if (draft.suggestedContent !== null) {
+    //     return { status: 200, body: { skipped: true } };
+    // }
 
     logger.info("Refining draft content...", { draftId: draft.id });
 
