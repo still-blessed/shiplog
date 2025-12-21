@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 export const config: CronConfig = {
     name: 'GenerateWeeklyDigest',
     type: 'cron',
-    schedule: '0 12 * * 5', // Every Friday at 12:00 PM
+    cron: '0 12 * * 5', // Every Friday at 12:00 PM
     description: 'Generates a weekly digest of minor updates',
     emits: ['draft.created'],
     flows: ['draft-flow'],

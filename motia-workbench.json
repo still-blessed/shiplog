@@ -14,8 +14,37 @@
     }
   },
   {
+    "id": "github-flow",
+    "config": {
+      "src/github/webhook.step.ts": {
+        "x": -145,
+        "y": -4
+      },
+      "src/ai/analyze-pr.step.ts": {
+        "x": 350,
+        "y": 34
+      }
+    }
+  },
+  {
     "id": "draft-flow",
     "config": {
+      "src/schedule/set-time.step.ts": {
+        "x": 48,
+        "y": 0
+      },
+      "src/schedule/generate-digest.step.ts": {
+        "x": 0,
+        "y": 204
+      },
+      "src/schedule/cron-ticker.step.ts": {
+        "x": -113,
+        "y": 696
+      },
+      "src/publishers/publish.step.ts": {
+        "x": 367,
+        "y": 720
+      },
       "src/drafts/update.step.ts": {
         "x": -196,
         "y": -3
@@ -31,19 +60,6 @@
       "src/drafts/create.step.ts": {
         "x": -192,
         "y": 405
-      }
-    }
-  },
-  {
-    "id": "github-flow",
-    "config": {
-      "src/github/webhook.step.ts": {
-        "x": -145,
-        "y": -4
-      },
-      "src/ai/analyze-pr.step.ts": {
-        "x": 350,
-        "y": 34
       }
     }
   }

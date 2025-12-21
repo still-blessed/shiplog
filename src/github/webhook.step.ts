@@ -7,7 +7,7 @@ export const config: ApiRouteConfig = {
     path: '/webhooks/github',
     method: 'POST',
     description: 'Receives webhooks from GitHub for PR merges and releases',
-    emits: ['github.pr_merged', 'github.release_published'],
+    emits: ['github.pr_merged', 'github.release_published', 'github.issue_closed', 'github.milestone_closed'],
     flows: ['github-flow'],
     bodySchema: z.object({
         action: z.string().optional(),
@@ -30,6 +30,25 @@ export const config: ApiRouteConfig = {
             author: z.object({
                 login: z.string(),
             }),
+        }).optional(),
+        issue: z.object({
+            title: z.string(),
+            body: z.string().nullable(),
+            html_url: z.string(),
+            url: z.string(),
+            number: z.number(),
+            state: z.string(),
+            labels: z.array(z.object({ name: z.string() })).optional(),
+            user: z.object({ login: z.string() }),
+        }).optional(),
+        milestone: z.object({
+            title: z.string(),
+            description: z.string().nullable(),
+            html_url: z.string(),
+            state: z.string(),
+            due_on: z.string().nullable(),
+            open_issues: z.number(),
+            closed_issues: z.number(),
         }).optional(),
         repository: z.object({
             full_name: z.string(),
@@ -148,6 +167,95 @@ export const handler: Handlers['GithubWebhook'] = async (req, { emit, logger }) 
                 success: true,
                 message: 'Release published event processed',
                 event: 'github.release_published'
+            }
+        };
+    }
+
+    // Handle Issue events (closed)
+    if (eventType === 'issues' && req.body.action === 'closed' && req.body.issue) {
+        const issue = req.body.issue;
+
+        logger.info('Issue closed event detected', {
+            title: issue.title,
+            number: issue.number,
+            user: issue.user.login
+        });
+
+        let comments: string[] = [];
+        try {
+            if (process.env.GITHUB_TOKEN) {
+                const headers = {
+                    'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'Shiplog-Bot'
+                };
+                const commentsUrl = `${issue.url}/comments`;
+                const res = await fetch(commentsUrl, { headers });
+                if (res.ok) {
+                    const data = await res.json() as any[];
+                    comments = data.map((c: any) => `[Comment] ${c.user.login}: ${c.body}`);
+                }
+            }
+        } catch (e) {
+            logger.error("Failed to fetch issue comments", { error: e });
+        }
+
+        await emit({
+            topic: 'github.issue_closed',
+            data: {
+                title: issue.title,
+                body: issue.body || '',
+                url: issue.html_url,
+                number: issue.number,
+                state: 'closed',
+                labels: issue.labels?.map((l: any) => l.name) || [],
+                comments,
+                author: issue.user.login,
+                repository: req.body.repository.full_name,
+                updatedAt: new Date().toISOString(),
+            }
+        });
+
+        return {
+            status: 200,
+            body: {
+                success: true,
+                message: 'Issue closed event processed',
+                event: 'github.issue_closed'
+            }
+        };
+    }
+
+    // Handle Milestone events (closed)
+    if (eventType === 'milestone' && req.body.action === 'closed' && req.body.milestone) {
+        const milestone = req.body.milestone;
+
+        logger.info('Milestone closed event detected', {
+            title: milestone.title,
+            state: milestone.state
+        });
+
+        await emit({
+            topic: 'github.milestone_closed',
+            data: {
+                title: milestone.title,
+                description: milestone.description || '',
+                url: milestone.html_url,
+                state: 'closed',
+                dueDate: milestone.due_on,
+                openIssues: milestone.open_issues,
+                closedIssues: milestone.closed_issues,
+                repository: req.body.repository.full_name,
+                updatedAt: new Date().toISOString(),
+            }
+        });
+
+        return {
+            status: 200,
+            body: {
+                success: true,
+                message: 'Milestone closed event processed',
+                event: 'github.milestone_closed'
             }
         };
     }

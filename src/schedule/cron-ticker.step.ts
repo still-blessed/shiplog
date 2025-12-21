@@ -4,7 +4,7 @@ import { Draft } from "../types";
 export const config: CronConfig = {
     name: 'CronTicker',
     type: 'cron',
-    schedule: '*/10 * * * *', // Every 10 minutes
+    cron: '*/10 * * * *', // Every 10 minutes
     description: 'Checks for scheduled posts that are due',
     emits: ['post.due'],
     flows: ['draft-flow'],

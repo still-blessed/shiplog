@@ -1,6 +1,6 @@
 import type { EventConfig, Handlers } from "motia";
 import { GeminiClient } from "../lib/gemini";
-import { GithubPRMergedPayload, Draft, WeeklyQueueItem } from "../types";
+import { GithubPRMergedPayload, Draft, WeeklyQueueItem, AnalyzedEvent } from "../types";
 import { randomUUID } from "node:crypto";
 
 export const config: EventConfig = {
@@ -26,12 +26,25 @@ export const handler: Handlers['AnalyzePR'] = async (input, { logger, emit, stat
     const analysis = await ai.analyzePR(payload.title, payload.body, payload.comments, payload.files);
     logger.info("AI Analysis Complete", { analysis });
 
+    // Store Analyzed Event
+    const eventId = randomUUID();
+    const analyzedEvent: AnalyzedEvent = {
+        id: eventId,
+        title: payload.title,
+        type: 'pr',
+        hypeScore: analysis.hypeScore,
+        analysis,
+        createdAt: new Date().toISOString(),
+        sourceUrl: payload.url
+    };
+    await state.set('recent_events', eventId, analyzedEvent);
+
     // Decision Logic
     if (analysis.hypeScore >= 7) {
         // High Score -> Create Draft immediately
         const draftId = randomUUID();
         
-        let content = `🚀 New Feature: ${payload.title}\n\n`;
+        let content = `🚀 ${analysis.category}: ${payload.title}\n\n`;
         if (analysis.summary) {
             content += `${analysis.summary}\n\n`;
         } else {
@@ -69,9 +82,10 @@ export const handler: Handlers['AnalyzePR'] = async (input, { logger, emit, stat
         const itemId = randomUUID();
         const queueItem: WeeklyQueueItem = {
             id: itemId,
-            prTitle: payload.title,
+            title: payload.title,
             contributor: payload.contributor,
             date: new Date().toISOString(),
+            type: 'pr'
         };
 
         // We'll store queue items in a list or collection

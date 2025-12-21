@@ -17,11 +17,22 @@ export interface Draft {
     updatedAt: string;
 }
 
+export interface AnalyzedEvent {
+    id: string;
+    title: string;
+    type: 'pr' | 'issue' | 'release' | 'milestone';
+    hypeScore: number;
+    analysis: any;
+    createdAt: string;
+    sourceUrl: string;
+}
+
 export interface WeeklyQueueItem {
     id: string;
-    prTitle: string;
+    title: string;
     contributor: string;
     date: string;
+    type?: 'pr' | 'issue' | 'release' | 'milestone';
 }
 
 // GitHub Webhook Payloads
@@ -44,4 +55,29 @@ export interface GithubReleasePayload {
     author: string;
     repository: string;
     publishedAt: string;
+}
+
+export interface GithubIssuePayload {
+    title: string;
+    body: string;
+    url: string;
+    number: number;
+    state: 'open' | 'closed';
+    labels: string[];
+    comments: string[];
+    author: string;
+    repository: string;
+    updatedAt: string;
+}
+
+export interface GithubMilestonePayload {
+    title: string;
+    description: string;
+    url: string;
+    state: 'open' | 'closed';
+    dueDate: string | null;
+    openIssues: number;
+    closedIssues: number;
+    repository: string;
+    updatedAt: string;
 }
